@@ -1,7 +1,6 @@
 package com.example.jsonfixer;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,16 +27,16 @@ public class JsonFixController {
         }
 
         try {
-            // ✅ Versuch: ist der Input bereits gültig?
+            // Prüfe, ob der Input bereits valides JSON ist
             objectMapper.readTree(input);
-            return ResponseEntity.ok(input); // Nichts zu tun
+            return ResponseEntity.ok(input);
 
         } catch (Exception e1) {
-            // ❌ reparieren, falls invalide
+            // Versuch, das JSON zu reparieren
             try {
-                String fixed = repairJson(input);
-                objectMapper.readTree(fixed); // nochmal prüfen
-                return ResponseEntity.ok(fixed);
+                String repaired = repairJson(input);
+                objectMapper.readTree(repaired); // nochmal validieren
+                return ResponseEntity.ok(repaired);
             } catch (Exception e2) {
                 ObjectNode error = objectMapper.createObjectNode();
                 error.put("error", "Failed to parse JSON after attempting repairs.");
@@ -52,13 +51,22 @@ public class JsonFixController {
     private String repairJson(String input) {
         if (input == null || input.isBlank()) return "{}";
 
-        return input
+        String cleaned = input
+                // typografische Zeichen ersetzen
                 .replace("“", "\"")
                 .replace("”", "\"")
                 .replace("‘", "'")
                 .replace("’", "'")
+
+                // unescaped doppelte Anführungszeichen escapen
+                .replaceAll("(?<!\\\\)\"", "\\\\\"")
+
+                // Newlines/Returns escapen
                 .replaceAll("(?<!\\\\)\\n", "\\\\n")
                 .replaceAll("(?<!\\\\)\\r", "\\\\r")
+
                 .trim();
+
+        return cleaned;
     }
 }
